@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../a2_pulumi/a2_pulumi.iml" filepath="$PROJECT_DIR$/../a2_pulumi/a2_pulumi.iml" />
       <module fileurl="file://$PROJECT_DIR$/a3_compute_ts.iml" filepath="$PROJECT_DIR$/a3_compute_ts.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../a4_testing/a4_testing_ts.iml" filepath="$PROJECT_DIR$/../a4_testing/a4_testing_ts.iml" />
     </modules>
   </component>
 </project>

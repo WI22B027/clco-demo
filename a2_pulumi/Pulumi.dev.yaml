@@ -1,0 +1,5 @@
+config:
+  location: germanywestcentral
+  skuName: Standard_LRS
+  kind: StorageV2
+  storageAccountName: a2sa

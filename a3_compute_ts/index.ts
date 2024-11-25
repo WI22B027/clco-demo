@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as azure from"@pulumi/azure-native";
-//import * as crypto from "crypto"; // Required for generating SAS tokens
+import * as storage from "@pulumi/azure-native/storage";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -24,9 +24,39 @@ function getAssetMap(dir: string): pulumi.asset.AssetMap {
     return assets;
 }
 
+// Function to generate a SAS URL for a blob
+function signedBlobReadUrl(args: {
+    blobUrl: pulumi.Output<string>;
+    accountName: pulumi.Output<string>;
+    resourceGroupName: pulumi.Output<string>;
+    containerName: pulumi.Output<string>;
+    blobName: pulumi.Output<string>;
+}): pulumi.Output<string> {
+    const { blobUrl, accountName, resourceGroupName, containerName, blobName } = args;
+
+    const sas = pulumi.all([accountName, resourceGroupName, containerName, blobName]).apply(
+        ([accName, rgName, contName, blobName]) => {
+            return storage.listStorageAccountServiceSASOutput({
+                accountName: accName,
+                protocols: storage.HttpProtocol.Https,
+                sharedAccessStartTime: "2021-01-01",
+                sharedAccessExpiryTime: "2030-01-01",
+                resource: storage.SignedResource.B,
+                resourceGroupName: rgName,
+                permissions: storage.Permissions.R,
+                canonicalizedResource: `/blob/${accName}/${contName}/${blobName}`,
+            });
+        }
+    );
+
+    return pulumi
+        .all([blobUrl, sas.apply((s) => s.serviceSasToken)])
+        .apply(([blobUrl, sasToken]) => `${blobUrl}?${sasToken}`);
+}
+
 //Config
 const config = new pulumi.Config();
-const location = "eastus2"
+const location = "uksouth"
 const resourceGroupName = "a3-python-webapp-rg";
 
 //Resource Group
@@ -43,14 +73,14 @@ const storageAccount = new azure.storage.StorageAccount("a3storageaccount",{
         name: azure.storage.SkuName.Standard_LRS,
     },
     kind: azure.storage.Kind.StorageV2,
-    allowBlobPublicAccess: true,
+    //allowBlobPublicAccess: true,
 });
 
 //Blob Container
 const container = new azure.storage.BlobContainer("a3container",{
     accountName: storageAccount.name,
     resourceGroupName: resourceGroup.name,
-    publicAccess: azure.storage.PublicAccess.Blob,
+    //publicAccess: azure.storage.PublicAccess.Blob,
 });
 
 const webAppAssets = getAssetMap("./webApp");
@@ -67,49 +97,17 @@ const blob = new azure.storage.Blob("webAppBlob.zip",{
     contentType: "application/zip",
 });
 
-/*
-// Generate SAS Token
-const permissions = "r"; // Read permissions
-const sasExpiry = "2030-12-31T23:59:59Z"; // Expiry time
-
-const sasToken = pulumi
-    .all([storageAccount.name, container.name, resourceGroup.name])
-    .apply(([accountName, containerName, resourceGroupName]) => {
-        // Retrieve storage account keys
-        return azure.storage.listStorageAccountKeys({
-            resourceGroupName: resourceGroupName,
-            accountName: accountName,
-        }).then(keys => {
-            const accountKey = keys.keys[0].value;
-
-            // Canonicalized resource format: /blob/{accountName}/{containerName}
-            const canonicalizedResource = `/blob/${accountName}/${containerName}`;
-
-            // String to sign format
-            const stringToSign = [
-                permissions, // Permissions
-                "",          // Start time (empty for no start time)
-                sasExpiry,   // Expiry time
-                canonicalizedResource, // Canonicalized resource
-                "",          // Signed identifier (empty for no identifier)
-                "2019-12-12" // Signed version (API version)
-            ].join("\n");
-
-            // Generate HMAC signature
-            const signature = crypto.createHmac("sha256", Buffer.from(accountKey, "base64"))
-                .update(stringToSign)
-                .digest("base64");
-
-            // Construct the SAS token
-            return `?sv=2019-12-12&sr=c&sig=${encodeURIComponent(signature)}&se=${encodeURIComponent(sasExpiry)}&sp=${permissions}`;
-        });
-    });
-
-//Generate the blob URL
-const blobUrl = pulumi.interpolate`https://${storageAccount.name}.blob.core.windows.net/${container.name}/${blob.name}${sasToken}`;
-*/
+// Generate the base blob URL
 const blobUrl = pulumi.interpolate`https://${storageAccount.name}.blob.core.windows.net/${container.name}/${blob.name}`;
 
+// Generate the SAS URL
+const sasUrl = signedBlobReadUrl({
+    blobUrl,
+    accountName: storageAccount.name,
+    resourceGroupName: resourceGroup.name,
+    containerName: container.name,
+    blobName: blob.name,
+});
 
 //Create App Service Plan
 const appServicePlan = new azure.web.AppServicePlan("a3appServicePlan",{
@@ -134,7 +132,7 @@ const webApp = new azure.web.WebApp("a3webapp",{
         appSettings: [
             {
                 name: "WEBSITE_RUN_FROM_PACKAGE", //tells Azure App Service to treat the package (ZIP file) as the root of your application and run it without unpacking
-                value: blobUrl,
+                value: sasUrl,
             },
             {
                 name: "FLASK_ENV", //forces dependency installation
@@ -158,5 +156,4 @@ export const webAppUrl = pulumi.interpolate`https://${webApp.defaultHostName}`;
 export const storageAccountName = storageAccount.name;
 export const containerName = container.name;
 export const blobUrlOutput = blobUrl;
-
-
+export const blobSasUrl = sasUrl;

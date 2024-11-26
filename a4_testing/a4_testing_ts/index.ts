@@ -103,13 +103,10 @@ const webApp = new azure.web.WebApp("a4webapp", {
 });
 
 // Export the Web App URL and the SAS URL
-export const webAppUrlOutput = pulumi.interpolate`https://${webApp.defaultHostName}`;
-export const blobSasUrlOutput = sasUrl;
-export const resourceGroupOutput = resourceGroup;
-export const storageAccountOutput = storageAccount;
-export const containerOutput = container;
-export const blobOutput = blob;
-export const appServicePlanOutput = appServicePlan;
-export const webAppOutput = webApp;
-export const blobSasUrlOutput = blobSasUrl;
-export const webAppUrlOutput = webAppUrl;
+export const webAppUrl = pulumi.interpolate`https://${webApp.defaultHostName}`;
+export const blobSasUrl = sasUrl;
+export const outputResourceGroup = pulumi.output(resourceGroup);
+export const outputStorageAccount = pulumi.output(storageAccount);
+export const outputAppServicePlan = pulumi.output(appServicePlan);
+export const outputAppServicePlanSku = pulumi.output(appServicePlan.sku);
+export const outputWebApp = pulumi.output(webApp);

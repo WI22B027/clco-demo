@@ -15,27 +15,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: Debug directory contents
-        run: ls -la
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Show current directory
-        run: pwd
-    
-      - name: Zip artifact for deployment
-        run: zip -r release.zip .
-
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
-
       - uses: actions/checkout@v4
 
       - name: Set up Python version
@@ -53,7 +32,16 @@ jobs:
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
+      - name: Zip artifact for deployment
+        run: zip release.zip ./* -r
 
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            release.zip
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -77,9 +65,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E76D4CCA84474EDFBD717B619B2394D0 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_29B49B9163154D6388C2705A4346CB09 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C3489BA1BF394D45B8D37F8BD44D5257 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DA0A5042A23D4345AC0EB94FF4D61042 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_26C1721C778245FB9E0687A5274CDF09 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_27C2F66C25984026BE713DB74EF4E358 }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3

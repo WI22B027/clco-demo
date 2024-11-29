@@ -15,19 +15,19 @@ jobs:
     steps:
     # checkout the repo
     - name: 'Checkout Github Action'
-      uses: actions/checkout@master
+      uses: actions/checkout@v4
 
 
     - name: Set up Python version
       uses: actions/setup-python@v5
       with:
-        python-version: 'Python 3.9'
+        python-version: '3.9'
 
     - name: Build using AppService-Build
       uses: azure/appservice-build@v2
       with:
         platform: python
-        platform-version: 'Python 3.9'
+        platform-version: '3.9'
 
     - name: Run Azure webapp deploy action using publish profile credentials
       uses: azure/webapps-deploy@v2
